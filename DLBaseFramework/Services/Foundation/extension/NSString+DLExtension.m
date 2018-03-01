@@ -396,7 +396,10 @@ DEF_DYNAMIC(toSHA1);
 
 - (BOOL)empty
 {
-	return (self == nil || [self length] == 0) ? YES : NO;
+    if (self == nil || [self length] == 0) {
+        return YES;
+    }
+	return NO;
 }
 
 - (BOOL)notEmpty
@@ -618,21 +621,9 @@ DEF_DYNAMIC(toSHA1);
 
 - (BOOL)isTelephone
 {
-    NSString * MOBILE = @"^1(3[0-9]|5[0-35-9]|8[025-9]|7[0678])\\d{8}$";
-    NSString * CM = @"^1(34[0-8]|(3[5-9]|5[0-27-9]|8[2-478]|7[08])\\d)\\d{7}$";
-    NSString * CU = @"^1(3[0-2]|5[256]|8[356|7[6]])\\d{8}$";
-    NSString * CT = @"^1((33|53|8[019]|7[7])[0-9]|349)\\d{7}$";
-    // NSString * PHS = @"^0(10|2[0-5789]|\\d{3})\\d{7,8}$";
+    NSString * MOBILE = @"^((0?(13[0-9])|(14[7])|(15[^4,\\D])|(16[0-9])|(17[0-9])|(18[0-9])|(19[0-9])|(92[0-9])|(98[0-9]))\\d{8})$";
     NSPredicate *regextestmobile = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", MOBILE];
-    NSPredicate *regextestcm = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", CM];
-    NSPredicate *regextestcu = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", CU];
-    NSPredicate *regextestct = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", CT];
-    
-    return  [regextestmobile evaluateWithObject:self]   ||
-//    [regextestphs evaluateWithObject:self]      ||
-    [regextestct evaluateWithObject:self]       ||
-    [regextestcu evaluateWithObject:self]       ||
-    [regextestcm evaluateWithObject:self];
+    return  [regextestmobile evaluateWithObject:self];
 }
 
 - (BOOL)isMobilephone

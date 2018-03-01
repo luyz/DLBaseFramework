@@ -131,8 +131,6 @@ DEF_SINGLETON(DLHttpHelper);
     
     if (!result) {
         
-        [SVProgressHUD dismiss];
-        
         [SVProgressHUD showInfoWithStatus:@"启动蜂窝移动数据或Wi-Fi来访问数据"];
     }
     return result;
@@ -141,8 +139,8 @@ DEF_SINGLETON(DLHttpHelper);
 +(void)DownFile:(NSString*)url
        withPath:(NSString*)filePath
    withProgress:(void (^)(CGFloat))downloadProgress
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString *error))failure
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] DownFile:url
                                    withPath:filePath
@@ -154,12 +152,12 @@ DEF_SINGLETON(DLHttpHelper);
 -(void)DownFile:(NSString*)url
        withPath:(NSString*)filePath
    withProgress:(void (^)(CGFloat))downloadProgressblock
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString *error))failure
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     if (![DLHttpHelper isNetworkReachable]) {
         if (failure!=nil) {
-            failure(nil);
+            failure(ENotNetwork,nil);
         }
         return;
     }
@@ -169,11 +167,13 @@ DEF_SINGLETON(DLHttpHelper);
     //3.创建请求对象
     NSURLRequest *request = [NSURLRequest requestWithURL:tempUrl];
     
-    AFHTTPSessionManager* manager = [AFHTTPSessionManager manager];
+    AFHTTPSessionManager* manager = [[AFHTTPSessionManager manager]initWithBaseURL:[NSURL URLWithString:self.baseUrl]];
     
     [manager.requestSerializer setTimeoutInterval:[DLHttpHelper sharedInstance].timeOut];
     
-    manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    if ([DLHttpHelper CheckUrlToHTTPS:url]) {
+        manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    }
     
     NSLog(@"down url:%@",url);
     
@@ -207,7 +207,7 @@ DEF_SINGLETON(DLHttpHelper);
             }
         }else{
             if (failure!=nil) {
-                failure(error.description);
+                failure(EParseError,error.description);
             }
         }
     }];
@@ -218,8 +218,8 @@ DEF_SINGLETON(DLHttpHelper);
 
 +(void)GetData:(NSString*)url
 withParameters:(NSDictionary*)params
-       success:(void (^)(id responseObject))success
-       failure:(void (^)(NSString *error))failure
+       success:(THttpSuccessBlock)success
+       failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] GetData:url
                                withHeaders:nil
@@ -232,8 +232,8 @@ withParameters:(NSDictionary*)params
 +(void)GetData:(NSString*)url
    withHeaders:(NSDictionary*)headers
 withParameters:(NSDictionary*)params
-       success:(void (^)(id responseObject))success
-       failure:(void (^)(NSString *error))failure
+       success:(THttpSuccessBlock)success
+       failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] GetData:url
                                withHeaders:headers
@@ -245,9 +245,9 @@ withParameters:(NSDictionary*)params
 
 +(void)GetData:(NSString *)url
 withParameters:(NSDictionary *)params
-  withProgress:(void (^)(CGFloat progress))downloadProgress
-       success:(void (^)(id responseObject))success
-       failure:(void (^)(NSString *error))failure
+  withProgress:(THttpDownloadProgessBlock)downloadProgress
+       success:(THttpSuccessBlock)success
+       failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] GetData:url
                                withHeaders:nil
@@ -260,13 +260,13 @@ withParameters:(NSDictionary *)params
 -(void)GetData:(NSString*)url
    withHeaders:(NSDictionary*)headers
 withParameters:(NSDictionary*)params
-  withProgress:(void (^)(CGFloat progress))progress
-       success:(void (^)(id responseObject))success
-       failure:(void (^)(NSString *error))failure
+  withProgress:(THttpDownloadProgessBlock)progress
+       success:(THttpSuccessBlock)success
+       failure:(THttpFailBlock)failure
 {
     if (![DLHttpHelper isNetworkReachable]) {
         if (failure!=nil) {
-            failure(nil);
+            failure(ENotNetwork,nil);
         }
         return;
     }
@@ -299,7 +299,7 @@ withParameters:(NSDictionary*)params
     
     INFO(@"GET URL:%@",tempUrl);
     
-    AFHTTPSessionManager* manager = [AFHTTPSessionManager manager];
+    AFHTTPSessionManager* manager = [[AFHTTPSessionManager manager]initWithBaseURL:[NSURL URLWithString:self.baseUrl]];
     
     [manager.requestSerializer setTimeoutInterval:[DLHttpHelper sharedInstance].timeOut];
     
@@ -313,7 +313,9 @@ withParameters:(NSDictionary*)params
     
     manager.responseSerializer = [AFHTTPResponseSerializer serializer];
 
-    manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    if ([DLHttpHelper CheckUrlToHTTPS:url]) {
+        manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    }
     
     [manager GET:tempUrl
            parameters:nil
@@ -334,15 +336,15 @@ withParameters:(NSDictionary*)params
               failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
                   ERROR(@"Error: %@", [error localizedDescription]);
                   if (failure!=nil) {
-                      failure([error localizedDescription]);
+                      failure(EHttpError,[error localizedDescription]);
                   }
               }];
 }
 
 +(void)PostData:(NSString*)url
  withParameters:(NSDictionary*)params
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString *error))failure
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostData:url
                                 withHeaders:nil
@@ -355,8 +357,8 @@ withParameters:(NSDictionary*)params
 +(void)PostData:(NSString*)url
     withHeaders:(NSDictionary*)headers
  withParameters:(NSDictionary*)params
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString *error))failure
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostData:url
                                 withHeaders:headers
@@ -368,9 +370,9 @@ withParameters:(NSDictionary*)params
 
 +(void)PostData:(NSString *)url
  withParameters:(NSDictionary *)params
-   withProgress:(void (^)(CGFloat progress))downloadProgress
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString * error))failure
+   withProgress:(THttpDownloadProgessBlock)downloadProgress
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostData:url
                                 withHeaders:nil
@@ -383,13 +385,13 @@ withParameters:(NSDictionary*)params
 -(void)PostData:(NSString*)url
     withHeaders:(NSDictionary*)headers
  withParameters:(NSDictionary*)params
-   withProgress:(void (^)(CGFloat progress))progress
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString *error))failure
+   withProgress:(THttpDownloadProgessBlock)progress
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     if (![DLHttpHelper isNetworkReachable]) {
         if (failure!=nil) {
-            failure(nil);
+            failure(ENotNetwork,nil);
         }
         return;
     }
@@ -397,13 +399,15 @@ withParameters:(NSDictionary*)params
     INFO(@"POST URL:%@",url);
     INFO(@"Params:%@",params);
     
-    AFHTTPSessionManager* manager = [AFHTTPSessionManager manager];
+    AFHTTPSessionManager* manager = [[AFHTTPSessionManager manager]initWithBaseURL:[NSURL URLWithString:self.baseUrl]];
     
     [manager.requestSerializer setTimeoutInterval:[DLHttpHelper sharedInstance].timeOut];
     
     manager.responseSerializer = [AFHTTPResponseSerializer serializer];
     
-    manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    if ([DLHttpHelper CheckUrlToHTTPS:url]) {
+        manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    }
     
     for (int i=0; i<[headers.allKeys count]; i++) {
         NSString* tempKey = [headers.allKeys objectAtIndex:i];
@@ -431,7 +435,7 @@ withParameters:(NSDictionary*)params
                failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
                     ERROR(@"Error: %@", [error localizedDescription]);
                     if (failure!=nil) {
-                        failure([error localizedDescription]);
+                        failure(EHttpError,[error localizedDescription]);
                     }
                }];
 }
@@ -439,8 +443,8 @@ withParameters:(NSDictionary*)params
 +(void)PostFormData:(NSString*)url
      withParameters:(NSDictionary*)params
        withFormData:(NSMutableArray*)formdata
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostFormData:url
                                     withHeaders:nil
@@ -455,8 +459,8 @@ withParameters:(NSDictionary*)params
         withHeaders:(NSDictionary*)headers
      withParameters:(NSDictionary*)params
        withFormData:(NSMutableArray*)formdata
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostFormData:url
                                     withHeaders:headers
@@ -470,9 +474,9 @@ withParameters:(NSDictionary*)params
 +(void)PostFormData:(NSString *)url
      withParameters:(NSDictionary *)params
        withFormData:(NSMutableArray *)formdata
-       withProgress:(void (^)(CGFloat progress))downloadProgress
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+       withProgress:(THttpDownloadProgessBlock)downloadProgress
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostFormData:url
                                     withHeaders:nil
@@ -487,26 +491,28 @@ withParameters:(NSDictionary*)params
         withHeaders:(NSDictionary*)headers
      withParameters:(NSDictionary*)params
        withFormData:(NSMutableArray*)formdata
-       withProgress:(void (^)(CGFloat progress))progress
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+       withProgress:(THttpDownloadProgessBlock)progress
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     if (![DLHttpHelper isNetworkReachable]) {
         if (failure!=nil) {
-            failure(nil);
+            failure(ENotNetwork,nil);
         }
         return;
     }
     INFO(@"POST FORM URL:%@",url);
     INFO(@"Params:%@",params);
     
-    AFHTTPSessionManager* manager = [AFHTTPSessionManager manager];
+    AFHTTPSessionManager* manager = [[AFHTTPSessionManager manager]initWithBaseURL:[NSURL URLWithString:self.baseUrl]];
     
     [manager.requestSerializer setTimeoutInterval:[DLHttpHelper sharedInstance].timeOut];
     
     manager.responseSerializer = [AFHTTPResponseSerializer serializer];
     
-    manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    if ([DLHttpHelper CheckUrlToHTTPS:url]) {
+        manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    }
     
     for (int i=0; i<[headers.allKeys count]; i++) {
         NSString* tempKey = [headers.allKeys objectAtIndex:i];
@@ -542,15 +548,15 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
                 failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
                    ERROR(@"Error: %@", [error localizedDescription]);
                    if (failure!=nil) {
-                       failure([error localizedDescription]);
+                       failure(EHttpError,[error localizedDescription]);
                    }
                 }];
 }
 
 +(void)PostJsonData:(NSString*)url
      withParameters:(NSDictionary*)params
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostJsonData:url
                                     withHeaders:nil
@@ -563,8 +569,8 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
 +(void)PostJsonData:(NSString*)url
         withHeaders:(NSDictionary*)headers
      withParameters:(NSDictionary*)params
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostJsonData:url
                                     withHeaders:headers
@@ -576,9 +582,9 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
 
 +(void)PostJsonData:(NSString *)url
      withParameters:(NSDictionary *)params
-       withProgress:(void (^)(CGFloat progress))downloadProgress
-            success:(void (^)(id responseObject))success
-            failure:(void (^)(NSString *error))failure
+       withProgress:(THttpDownloadProgessBlock)downloadProgress
+            success:(THttpSuccessBlock)success
+            failure:(THttpFailBlock)failure
 {
     [[DLHttpHelper sharedInstance] PostJsonData:url
                                     withHeaders:nil
@@ -591,13 +597,13 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
 -(void)PostJsonData:(NSString*)url
         withHeaders:(NSDictionary*)headers
  withParameters:(NSDictionary*)params
-   withProgress:(void (^)(CGFloat progress))progress
-        success:(void (^)(id responseObject))success
-        failure:(void (^)(NSString *error))failure
+   withProgress:(THttpDownloadProgessBlock)progress
+        success:(THttpSuccessBlock)success
+        failure:(THttpFailBlock)failure
 {
     if (![DLHttpHelper isNetworkReachable]) {
         if (failure!=nil) {
-            failure(nil);
+            failure(ENotNetwork,nil);
         }
         return;
     }
@@ -605,13 +611,15 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
     INFO(@"POST URL:%@",url);
     INFO(@"Params:%@",params);
     
-    AFHTTPSessionManager* manager = [AFHTTPSessionManager manager];
+    AFHTTPSessionManager* manager = [[AFHTTPSessionManager manager]initWithBaseURL:[NSURL URLWithString:self.baseUrl]];
     
     [manager.requestSerializer setTimeoutInterval:[DLHttpHelper sharedInstance].timeOut];
     
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     
-    manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    if ([DLHttpHelper CheckUrlToHTTPS:url]) {
+        manager.securityPolicy = [DLHttpHelper handleSecurity:[DLBaseEngine sharedInstance].myCerSet];
+    }
     
     for (int i=0; i<[headers.allKeys count]; i++) {
         NSString* tempKey = [headers.allKeys objectAtIndex:i];
@@ -638,7 +646,7 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
                failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
                    ERROR(@"Error: %@", [error localizedDescription]);
                    if (failure!=nil) {
-                       failure([error localizedDescription]);
+                       failure(EHttpError,[error localizedDescription]);
                    }
                }];
 }
@@ -646,7 +654,6 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
 +(AFSecurityPolicy*)handleSecurity:(NSSet*)recSet
 {
     if(recSet==nil){
-        
         AFSecurityPolicy* policy = [AFSecurityPolicy defaultPolicy];
         policy.allowAllSSL = YES;
         return policy;
@@ -662,7 +669,7 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
     //假如证书的域名与你请求的域名不一致，需把该项设置为NO；如设成NO的话，即服务器使用其他可信任机构颁发的证书，也可以建立连接，这个非常危险，建议打开。
     //置为NO，主要用于这种情况：客户端请求的是子域名，而证书上的是另外一个域名。因为SSL证书上的域名是独立的，假如证书上注册的域名是www.google.com，那么mail.google.com是无法验证通过的；当然，有钱可以注册通配符的域名*.google.com，但这个还是比较贵的。
     //如置为NO，建议自己添加对应域名的校验逻辑。
-    securityPolicy.validatesDomainName = YES;
+    securityPolicy.validatesDomainName = NO;
     // 设置证书
     
     [securityPolicy setPinnedCertificates:recSet];
@@ -670,4 +677,15 @@ constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
     return securityPolicy;
 }
 
++(BOOL)CheckUrlToHTTPS:(NSString*)url
+{
+    BOOL result = NO;
+    
+    NSRange tempR = [url rangeOfString:@"https://"];
+    if (tempR.location!=-1 && tempR.length>0) {
+        result = YES;
+    }
+    
+    return result;
+}
 @end

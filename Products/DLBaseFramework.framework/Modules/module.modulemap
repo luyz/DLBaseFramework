@@ -1,0 +1,6 @@
+framework module DLBaseFramework {
+  umbrella header "DLBaseFramework.h"
+
+  export *
+  module * { export * }
+}

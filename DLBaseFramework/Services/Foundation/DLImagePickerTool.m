@@ -11,6 +11,7 @@
 #import "DLSandbox.h"
 #import "DLCache.h"
 #import "NSDate+DLExtension.h"
+#import "DLAleatViewHelper.h"
 
 @interface DLImagePickerTool ()
 
@@ -67,34 +68,17 @@ DEF_MODEL(videoMaxTime);
     self.toolBlock = [block copy];
     self.isEdit = edit;
     
-    UIActionSheet *actionSheet = [[UIActionSheet alloc]
-                                  initWithTitle:nil
-                                  delegate:self
-                                  cancelButtonTitle:@"取消"
-                                  destructiveButtonTitle:nil
-                                  otherButtonTitles:@"拍照", @"图片库",nil];
-    actionSheet.actionSheetStyle = UIActionSheetStyleBlackOpaque;
-    actionSheet.tag = 9001;
-    [actionSheet showInView:controller.view];
-}
-
-#pragma UIActionSheetDelegate
-
--(void)actionSheet:(UIActionSheet *)actionSheet didDismissWithButtonIndex:(NSInteger)buttonIndex
-{
-    if (actionSheet.tag == 9001) {
-        if (buttonIndex == 0) {
-            [self showPhoto:0];
-        }else if (buttonIndex == 1){
-            [self showPhoto:1];
-        }
-    }else if(actionSheet.tag == 9009){
-        if (buttonIndex == 0) {
-            [self showPhoto:3];
-        }else if (buttonIndex == 1){
-            [self showPhoto:2];
-        }
-    }
+    [DLAleatViewHelper showAleatSheet:nil
+                            withItems:@[@"拍照",@"图片库",@"取消"]
+                       withController:controller
+                            withBlock:^(NSInteger tag) {
+                                if (tag == 0) {
+                                    [self showPhoto:0];
+                                }else if (tag == 1){
+                                    [self showPhoto:1];
+                                }
+                            }];
+    
 }
 
 -(void)showImagePickerCamera:(UIViewController*)controller
@@ -127,15 +111,16 @@ DEF_MODEL(videoMaxTime);
     self.videoToolBlock = [block copy];
     self.videoMaxTime = time;
     
-    UIActionSheet *actionSheet = [[UIActionSheet alloc]
-                                  initWithTitle:nil
-                                  delegate:self
-                                  cancelButtonTitle:@"取消"
-                                  destructiveButtonTitle:nil
-                                  otherButtonTitles:@"本地视频", @"录取视频",nil];
-    actionSheet.actionSheetStyle = UIActionSheetStyleBlackOpaque;
-    actionSheet.tag = 9009;
-    [actionSheet showInView:controller.view];
+    [DLAleatViewHelper showAleatSheet:nil
+                            withItems:@[@"本地视频",@"录取视频",@"取消"]
+                       withController:controller
+                            withBlock:^(NSInteger tag) {
+                                if (tag == 0) {
+                                    [self showPhoto:3];
+                                }else if (tag == 1){
+                                    [self showPhoto:2];
+                                }
+                            }];
 }
 
 -(void)showPhoto:(int)sourcetype

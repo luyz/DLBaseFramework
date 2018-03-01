@@ -10,12 +10,12 @@
 
 @implementation DLAsynThead
 
-+(void)toAsyn:(void (^)())block
++(void)toAsyn:(void (^)(void))block
 {
     [DLAsynThead toAsynWait:0 withBlock:block];
 }
 
-+(void)toAsynWait:(NSTimeInterval)ti withBlock:(void (^)())block
++(void)toAsynWait:(NSTimeInterval)ti withBlock:(void (^)(void))block
 {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         [NSThread sleepForTimeInterval:ti];

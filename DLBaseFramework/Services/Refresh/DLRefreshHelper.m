@@ -68,11 +68,11 @@ AS_MODEL(TRefreshType, myType);
 {
     if (self.myType == ERefreshAndFooter) {
         if (self.myTableView!=nil) {
-            [self addRefreshAndFooter:self.myTableView withBlock:block withShowFooter:YES];
+            [self addRefreshWithBlock:block withShowFooter:YES];
         }else if (self.myCollectionView!=nil){
-            [self addRefreshAndFooter:self.myCollectionView withBlock:block withShowFooter:YES];
+            [self addRefreshWithBlock:block withShowFooter:YES];
         }else if (self.myScrollView!=nil){
-            [self addRefreshAndFooter:self.myScrollView withBlock:block withShowFooter:YES];
+            [self addRefreshWithBlock:block withShowFooter:YES];
         }
     }else if (self.myType == ERefreshAndScrollBottom) {
         if (self.myTableView!=nil) {
@@ -84,11 +84,11 @@ AS_MODEL(TRefreshType, myType);
         }
     }else if (self.myType == EOnlyRefresh) {
         if (self.myTableView!=nil) {
-            [self addRefreshAndFooter:self.myTableView withBlock:block withShowFooter:NO];
+            [self addRefreshWithBlock:block withShowFooter:NO];
         }else if (self.myCollectionView!=nil){
-            [self addRefreshAndFooter:self.myCollectionView withBlock:block withShowFooter:NO];
+            [self addRefreshWithBlock:block withShowFooter:NO];
         }else if (self.myScrollView!=nil){
-            [self addRefreshAndFooter:self.myScrollView withBlock:block withShowFooter:NO];
+            [self addRefreshWithBlock:block withShowFooter:NO];
         }
     }
 }
@@ -120,30 +120,41 @@ AS_MODEL(TRefreshType, myType);
     }
 }
 
--(void)addRefreshAndFooter:(id)view withBlock:(TDLRefreshBlock)block withShowFooter:(BOOL)show
+-(void)addRefreshWithBlock:(TDLRefreshBlock)block withShowFooter:(BOOL)show
 {
-    [view addHeaderWithCallback:^{
+    
+    MJRefreshHeader* tempHeader = nil;
+    MJRefreshFooter* tempFooter = nil;
+    
+    tempHeader = [MJRefreshNormalHeader headerWithRefreshingBlock:^{
         
         if (self.isRefresh || self.isFooter) {
             return ;
         }
-        
         self.isRefresh = YES;
         
         [self getData:block];
     }];
+    tempFooter = [MJRefreshBackNormalFooter footerWithRefreshingBlock:^{
+        if (self.isRefresh || self.isFooter) {
+            return ;
+        }
+        
+        self.isFooter = YES;
+        
+        [self getData:block];
+    }];
+    tempFooter.hidden = !show;
     
-    if (show) {
-        [view addFooterWithCallback:^{
-            
-            if (self.isRefresh || self.isFooter) {
-                return ;
-            }
-            
-            self.isFooter = YES;
-            
-            [self getData:block];
-        }];
+    if (self.myTableView!=nil) {
+        self.myTableView.mj_footer = tempFooter;
+        self.myTableView.mj_header = tempHeader;
+    }else if (self.myCollectionView!=nil){
+        self.myCollectionView.mj_footer = tempFooter;
+        self.myCollectionView.mj_header = tempHeader;
+    }else if (self.myScrollView!=nil){
+        self.myScrollView.mj_footer = tempFooter;
+        self.myScrollView.mj_header = tempHeader;
     }
 }
 
@@ -179,11 +190,23 @@ AS_MODEL(TRefreshType, myType);
 {
     if (self.myType == ERefreshAndFooter) {
         if (self.myTableView) {
-            [self.myTableView setFooterHidden:!show];
+            if (show) {
+                [self.myTableView.mj_footer endRefreshing];
+            }else{
+                [self.myTableView.mj_footer endRefreshingWithNoMoreData];
+            }
         }else if (self.myCollectionView) {
-            [self.myCollectionView setFooterHidden:!show];
+            if (show) {
+                [self.myCollectionView.mj_footer endRefreshing];
+            }else{
+                [self.myCollectionView.mj_footer endRefreshingWithNoMoreData];
+            }
         }else if (self.myScrollView) {
-            [self.myScrollView setFooterHidden:!show];
+            if (show) {
+                [self.myScrollView.mj_footer endRefreshing];
+            }else{
+                [self.myScrollView.mj_footer endRefreshingWithNoMoreData];
+            }
         }
     }else if (self.myType == ERefreshAndScrollBottom) {
         if (self.myTableView) {
@@ -200,11 +223,11 @@ AS_MODEL(TRefreshType, myType);
 {
     if (self.myType == ERefreshAndFooter) {
         if (self.myTableView) {
-            [self.myTableView headerBeginRefreshing];
+            [self.myTableView.mj_header beginRefreshing];
         }else if (self.myCollectionView) {
-            [self.myCollectionView headerBeginRefreshing];
+            [self.myCollectionView.mj_header beginRefreshing];
         }else if (self.myScrollView) {
-            [self.myScrollView headerBeginRefreshing];
+            [self.myScrollView.mj_header beginRefreshing];
         }
     }else if (self.myType == ERefreshAndScrollBottom) {
         if (self.myTableView) {
@@ -216,11 +239,11 @@ AS_MODEL(TRefreshType, myType);
         }
     }else if (self.myType == EOnlyRefresh) {
         if (self.myTableView) {
-            [self.myTableView headerBeginRefreshing];
+            [self.myTableView.mj_header beginRefreshing];
         }else if (self.myCollectionView) {
-            [self.myCollectionView headerBeginRefreshing];
+            [self.myCollectionView.mj_header beginRefreshing];
         }else if (self.myScrollView) {
-            [self.myScrollView headerBeginRefreshing];
+            [self.myScrollView.mj_header beginRefreshing];
         }
     }
 }
@@ -229,11 +252,11 @@ AS_MODEL(TRefreshType, myType);
 {
     if (self.myType == ERefreshAndFooter) {
         if (self.myTableView) {
-            [self.myTableView footerBeginRefreshing];
+            [self.myTableView.mj_footer beginRefreshing];
         }else if (self.myCollectionView) {
-            [self.myCollectionView footerBeginRefreshing];
+            [self.myCollectionView.mj_footer beginRefreshing];
         }else if (self.myScrollView) {
-            [self.myScrollView footerBeginRefreshing];
+            [self.myScrollView.mj_footer beginRefreshing];
         }
     }else if (self.myType == ERefreshAndScrollBottom) {
         if (self.myTableView) {
@@ -250,11 +273,11 @@ AS_MODEL(TRefreshType, myType);
 {
     if (self.myType == ERefreshAndFooter) {
         if (self.myTableView) {
-            [self.myTableView headerEndRefreshing];
+            [self.myTableView.mj_header endRefreshing];
         }else if (self.myCollectionView) {
-            [self.myCollectionView headerEndRefreshing];
+            [self.myCollectionView.mj_header endRefreshing];
         }else if (self.myScrollView) {
-            [self.myScrollView headerEndRefreshing];
+            [self.myScrollView.mj_header endRefreshing];
         }
     }else if (self.myType == ERefreshAndScrollBottom) {
         if (self.myTableView) {
@@ -266,11 +289,11 @@ AS_MODEL(TRefreshType, myType);
         }
     }else if (self.myType == EOnlyRefresh) {
         if (self.myTableView) {
-            [self.myTableView headerEndRefreshing];
+            [self.myTableView.mj_header endRefreshing];
         }else if (self.myCollectionView) {
-            [self.myCollectionView headerEndRefreshing];
+            [self.myCollectionView.mj_header endRefreshing];
         }else if (self.myScrollView) {
-            [self.myScrollView headerEndRefreshing];
+            [self.myScrollView.mj_header endRefreshing];
         }
     }
 }
@@ -279,11 +302,11 @@ AS_MODEL(TRefreshType, myType);
 {
     if (self.myType == ERefreshAndFooter) {
         if (self.myTableView) {
-            [self.myTableView footerEndRefreshing];
+            [self.myTableView.mj_footer endRefreshing];
         }else if (self.myCollectionView) {
-            [self.myCollectionView footerEndRefreshing];
+            [self.myCollectionView.mj_footer endRefreshing];
         }else if (self.myScrollView) {
-            [self.myScrollView footerEndRefreshing];
+            [self.myScrollView.mj_footer endRefreshing];
         }
     }else if (self.myType == ERefreshAndScrollBottom) {
         if (self.myTableView) {

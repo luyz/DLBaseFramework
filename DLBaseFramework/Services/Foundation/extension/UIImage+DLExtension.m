@@ -376,20 +376,22 @@ CGFloat RadiansToDegrees(CGFloat radians) {return radians * 180/M_PI;};
 }
 
 - (UIImage*)saturateImage:(float)saturationAmount withContrast:(float)contrastAmount{
-    UIImage *sourceImage = self;
+    
 
     CIContext *context = [CIContext contextWithOptions:nil];
 
     CIFilter *filter= [CIFilter filterWithName:@"CIColorControls"];
 
-    CIImage *inputImage = [[CIImage alloc] initWithImage:sourceImage] ;
+    CIImage *inputImage = [[CIImage alloc] initWithImage:self] ;
 
     [filter setValue:inputImage forKey:@"inputImage"];
 
     [filter setValue:[NSNumber numberWithFloat:saturationAmount] forKey:@"inputSaturation"];
     [filter setValue:[NSNumber numberWithFloat:contrastAmount] forKey:@"inputContrast"];
 
-    return [UIImage imageWithCGImage:[context createCGImage:filter.outputImage fromRect:filter.outputImage.extent]];
+    UIImage *sourceImage = [context createCGImage:filter.outputImage fromRect:filter.outputImage.extent];
+    
+    return sourceImage;
 }
 
 /*
